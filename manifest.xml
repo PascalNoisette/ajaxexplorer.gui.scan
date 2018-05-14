@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	<!--
+	 *
+	 * Copyright (C) 2012 Pascal Noisette
+	 *
+	 * This file is part of gui.scan an Ajaxplorer plugin
+	 *
+	 * This program is free software; you can redistribute it and/or modify
+	 * it under the terms of the GNU General Public License as published by
+	 * the Free Software Foundation; either version 2 of the License, or
+	 * (at your option) any later version.
+	 * 
+	 * This program is distributed in the hope that it will be useful,
+	 * but WITHOUT ANY WARRANTY; without even the implied warranty of
+	 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	 * GNU Library General Public License for more details.
+	 * 
+	 * You should have received a copy of the GNU General Public License
+	 * along with this program; if not, write to the Free Software
+	 * Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301,  USA
+	 *
+	-->
+<ajxp_plugin id="gui.scan" label="CONF_MESSAGE[Scan to file]" description="CONF_MESSAGE[Create a file from scan device]" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:../core.ajaxplorer/ajxp_registry.xsd">
+	<class_definition filename="plugins/gui.scan/class.Scanner.php" classname="Scanner"/>
+	<client_settings>
+		<resources>
+		<i18n namespace="gui_scan" path="plugins/gui.scan/resources/i18n" />
+		<img_library alias="gui_scan_images" path="plugins/gui.scan/resources/images" />
+	    	<css file="plugins/gui.scan/resources/style.gui.scan.css" autoload="true"/>
+		</resources>	
+	</client_settings>
+	<registry_contributions>
+		<actions>
+			<!--one action to display in content menu when selection empty-->
+			<action name="scan">
+				<gui text="gui_scan.3" title="gui_scan.3" src="gui_scan_images/ICON_SIZE/pdf.png" hasAccessKey="false">
+					<context selection="false" dir="true" recycle="hidden"
+						actionBar="true" contextMenu="true" infoPanel="false"
+						actionBarGroup="put" inZip="false">
+					</context>
+
+				</gui>
+				<processing>
+					<clientCallback prepareModal="true" dialogOpenForm="scan">
+						<dialogOnOpen><![CDATA[
+							var rm =new ResourcesManager();
+						    rm.loadCSSResource('plugins/gui.scan/resources/style.gui.scan.css');
+							$('scan_name').setAttribute('value', "scan " + new Date() );
+				oForm.down('[name="ok"]').hide();
+				
+				var connexion = new Connexion();
+                            connexion.setParameters(new Hash({get_action:'retrive_device_list'}));
+                            connexion.onComplete = function(transport){
+                                $("device_list_placeholder").innerHTML = transport.responseText;
+                                $("scan_device").select();
+				if ($("scan_device").length>0) {
+					oForm.down('[name="ok"]').show();
+				} else {
+					$("device_list_placeholder").innerHTML = "AJXP_MESSAGE[gui_scan.4]";
+				}
+                            };
+                            connexion.sendAsync();
+
+						]]></dialogOnOpen>
+						<dialogOnComplete><![CDATA[
+							var dlFile = oForm.down('[name="scan_name"]').getValue();
+							var device = oForm.down('[name="scan_device"]').getValue();							
+							var resolution = oForm.down('[name="scan_resolution"]').getValue();
+							var mode = oForm.down('[name="scan_mode"]').getValue();
+							var crtDir = ajaxplorer.getContextNode().getPath();
+							var bgManager = ajaxplorer.actionBar.bgManager;
+							bgManager.queueAction("scan", new Hash({dir:crtDir, scan_name:dlFile, scan_device:device, scan_resolution:resolution, scan_mode:mode}), "");
+							bgManager.next();
+							hideLightBox(true);
+						]]></dialogOnComplete>
+					</clientCallback>
+					<clientForm id="scan"><![CDATA[
+					<div id="scan" action="scan" box_width="320">
+					
+					<br/> 
+
+					Device :
+					<span id="device_list_placeholder">
+						<img src="./plugins/gui.ajax/res/themes/umbra/images/loadingImage.gif" alt="Please wait the available device listing" />
+					</span>
+					<br/>
+
+					Filename :
+					<input type="text" name="scan_name" value="" id="scan_name" class="dialogFocus initFicName"/>
+					<br/>
+					
+					Resolution : <select name="scan_resolution" id="scan_resolution">
+						<option value="75">75 dpi</option>
+						<option value="100">100 dpi</option>	
+						<option value="200">200 dpi</option>
+						<option selected="selected" value="300">300 dpi</option>	
+						<option value="600">600 dpi</option>
+						<option value="1200">1200 dpi</option>
+						<option value="2400">2400 dpi</option>					
+					</select>
+					<br/>
+
+					Mode : <select name="scan_mode" id="scan_mode">
+						<option value="Lineart">Lineart</option>
+						<option value="Gray">Gray</option>
+						<option  selected="selected" value="Color">Color</option>
+											
+					</select>
+					</br>						
+					
+					</div>
+					]]></clientForm>
+					<serverCallback methodName="scanAction"></serverCallback>
+				</processing>
+			</action>
+			<!--one ajax request action to display scan type device available-->
+			<action name="retrive_device_list">
+				<processing>	
+					<serverCallback methodName="listDeviceAction"></serverCallback>
+				</processing>
+			</action>			
+		</actions>			
+	</registry_contributions>				
+</ajxp_plugin>
